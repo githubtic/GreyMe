@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMAGE AFC - AI-Enhanced Geographic Analysis</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 1rem;
+            padding: 1rem;
+            height: calc(100vh - 120px);
+        }
+
+        .controls-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow-y: auto;
+        }
+
+        .map-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .chat-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            border-radius: 15px;
+            z-index: 1;
+        }
+
+        .chat-header {
+            text-align: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .chat-header h3 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: rgba(248, 249, 250, 0.8);
+            border-radius: 15px;
+            max-height: 300px;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.8rem;
+            border-radius: 15px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .message.user {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            margin-left: 2rem;
+        }
+
+        .message.ai {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            margin-right: 2rem;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .message.system {
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            font-style: italic;
+            text-align: center;
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 1rem;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 25px;
+            font-size: 1rem;
+            background: rgba(255, 255, 255, 0.9);
+            transition: all 0.3s ease;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .send-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 1rem 1.5rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .control-group h3 {
+            color: #444;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 0.3rem 0.3rem 0.3rem 0;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            display: inline-block;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn.secondary {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn.secondary:hover {
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+        }
+
+        .data-display {
+            background: rgba(248, 249, 250, 0.8);
+            border-radius: 15px;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-left: 4px solid #667eea;
+            font-size: 0.9rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            border-radius: 10px;
+            padding: 0.8rem;
+            text-align: center;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 0.3rem;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 1rem;
+        }
+
+        .spinner {
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .location-tag {
+            display: inline-block;
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding: 0.2rem 0.6rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            margin: 0.2rem;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .location-tag:hover {
+            background: rgba(102, 126, 234, 0.2);
+            transform: scale(1.05);
+        }
+
+        .extracted-locations {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 1rem 0;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        @media (max-width: 1200px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto 1fr;
+            }
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>IMAGE AFC + AI Chat</h1>
+        <p>Interactive Geographic Analysis with AI-Powered Location Extraction</p>
+    </div>
+
+    <div class="main-container">
+        <div class="controls-panel">
+            <div class="control-group">
+                <h3>🎯 Analysis Controls</h3>
+                <button class="btn" onclick="generateSampleData()">Generate Sample Data</button>
+                <button class="btn secondary" onclick="runCorrespondenceAnalysis()">Run AFC Analysis</button>
+                <button class="btn" onclick="visualizeResults()">Map Results</button>
+                <button class="btn" onclick="clearAllMarkers()">Clear Map</button>
+            </div>
+
+            <div class="control-group">
+                <h3>📊 Analysis Status</h3>
+                <div id="analysis-results" class="data-display">
+                    <p>Ready to analyze geographic data</p>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="data-points">0</div>
+                    <div class="stat-label">Data Points</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="chat-locations">0</div>
+                    <div class="stat-label">Chat Locations</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="variance-explained">0%</div>
+                    <div class="stat-label">Variance Explained</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="mapped-total">0</div>
+                    <div class="stat-label">Total Mapped</div>
+                </div>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Processing...</p>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+
+        <div class="chat-panel">
+            <div class="chat-header">
+                <h3>🤖 AI Geographic Chat</h3>
+                <p style="font-size: 0.9rem; color: #666;">Mention locations and I'll map them!</p>
+            </div>
+            
+            <div class="chat-messages" id="chat-messages">
+                <div class="message system">
+                    Welcome! Try mentioning locations like "I visited Paris, then went to 123 Main Street, New York" and I'll extract and map them for you.
+                </div>
+            </div>
+            
+            <div class="extracted-locations" id="extracted-locations" style="display: none;">
+                <h4 style="margin-bottom: 0.5rem; color: #667eea;">🎯 Detected Locations:</h4>
+                <div id="location-tags"></div>
+            </div>
+            
+            <div class="chat-input-container">
+                <input type="text" class="chat-input" id="chat-input" 
+                       placeholder="Describe locations, addresses, or travel plans..." 
+                       onkeypress="handleChatKeyPress(event)">
+                <button class="send-btn" onclick="sendMessage()">📍 Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
+    <script>
+        // Global variables
+        let map;
+        let currentData = [];
+        let analysisResults = null;
+        let mapMarkers = [];
+        let chatLocations = [];
+        let leafletLoaded = false;
+        let chatHistory = [];
+
+        // Geographic location patterns
+        const locationPatterns = {
+            // Address patterns
+            streetAddress: /\b\d+\s+[\w\s]+(?:street|st|avenue|ave|road|rd|boulevard|blvd|drive|dr|lane|ln|way|court|ct|place|pl)\b/gi,
+            
+            // City, Country patterns
+            cityCountry: /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/g,
+            
+            // Famous places and landmarks
+            landmarks: /\b(?:Eiffel\s+Tower|Times\s+Square|Big\s+Ben|Statue\s+of\s+Liberty|Colosseum|Louvre|Notre\s+Dame|Golden\s+Gate\s+Bridge|Empire\s+State\s+Building|Tower\s+Bridge|Sagrada\s+Familia|Machu\s+Picchu|Great\s+Wall)\b/gi,
+            
+            // Major cities (expanded list)
+            majorCities: /\b(?:New\s+York|Los\s+Angeles|Chicago|Houston|Phoenix|Philadelphia|San\s+Antonio|San\s+Diego|Dallas|San\s+Jose|Austin|Jacksonville|Fort\s+Worth|Columbus|Charlotte|San\s+Francisco|Indianapolis|Seattle|Denver|Washington|Boston|El\s+Paso|Nashville|Detroit|Oklahoma\s+City|Portland|Las\s+Vegas|Memphis|Louisville|Baltimore|Milwaukee|Albuquerque|Tucson|Fresno|Sacramento|Kansas\s+City|Mesa|Virginia\s+Beach|Atlanta|Colorado\s+Springs|Omaha|Raleigh|Miami|Oakland|Minneapolis|Tulsa|Cleveland|Wichita|Arlington|Paris|London|Berlin|Madrid|Rome|Amsterdam|Vienna|Prague|Budapest|Warsaw|Stockholm|Oslo|Helsinki|Copenhagen|Dublin|Brussels|Zurich|Geneva|Barcelona|Milan|Naples|Florence|Venice|Munich|Hamburg|Frankfurt|Cologne|Stuttgart|Dusseldorf|Leipzig|Dresden|Nuremberg|Tokyo|Osaka|Kyoto|Yokohama|Kobe|Nagoya|Sapporo|Fukuoka|Kawasaki|Hiroshima|Beijing|Shanghai|Guangzhou|Shenzhen|Chengdu|Hangzhou|Wuhan|Xi'an|Nanjing|Tianjin|Mumbai|Delhi|Bangalore|Hyderabad|Chennai|Kolkata|Pune|Ahmedabad|Jaipur|Lucknow|Sydney|Melbourne|Brisbane|Perth|Adelaide|Canberra|Gold\s+Coast|Newcastle|Wollongong|Geelong|Toronto|Montreal|Vancouver|Calgary|Edmonton|Ottawa|Winnipeg|Quebec\s+City|Hamilton|Kitchener|London|Halifax|Moscow|Saint\s+Petersburg|Novosibirsk|Yekaterinburg|Nizhny\s+Novgorod|Kazan|Chelyabinsk|Omsk|Samara|Rostov|Ufa|Sao\s+Paulo|Rio\s+de\s+Janeiro|Brasilia|Salvador|Fortaleza|Belo\s+Horizonte|Manaus|Curitiba|Recife|Porto\s+Alegre|Cairo|Alexandria|Giza|Shubra\s+El\s+Kheima|Port\s+Said|Suez|Luxor|Mansoura|El\s+Mahalla\s+El\s+Kubra|Tanta|Istanbul|Ankara|Izmir|Bursa|Adana|Gaziantep|Konya|Antalya|Kayseri|Mersin)\b/gi,
+            
+            // Countries
+            countries: /\b(?:Afghanistan|Albania|Algeria|Argentina|Armenia|Australia|Austria|Azerbaijan|Bahrain|Bangladesh|Belarus|Belgium|Bolivia|Bosnia|Brazil|Bulgaria|Cambodia|Canada|Chile|China|Colombia|Croatia|Czech\s+Republic|Denmark|Ecuador|Egypt|Estonia|Finland|France|Georgia|Germany|Greece|Hungary|Iceland|India|Indonesia|Iran|Iraq|Ireland|Israel|Italy|Japan|Jordan|Kazakhstan|Kenya|Kuwait|Latvia|Lebanon|Lithuania|Luxembourg|Malaysia|Mexico|Morocco|Netherlands|Norway|Pakistan|Peru|Philippines|Poland|Portugal|Qatar|Romania|Russia|Saudi\s+Arabia|Singapore|Slovakia|Slovenia|South\s+Africa|South\s+Korea|Spain|Sweden|Switzerland|Thailand|Turkey|Ukraine|United\s+Arab\s+Emirates|United\s+Kingdom|United\s+States|Uruguay|Venezuela|Vietnam)\b/gi
+        };
+
+        // Geographic coordinates database (simplified)
+        const coordinateDB = {
+            // Major cities with coordinates
+            'paris': {lat: 48.8566, lng: 2.3522, type: 'city', country: 'France'},
+            'london': {lat: 51.5074, lng: -0.1278, type: 'city', country: 'United Kingdom'},
+            'new york': {lat: 40.7128, lng: -74.0060, type: 'city', country: 'United States'},
+            'tokyo': {lat: 35.6762, lng: 139.6503, type: 'city', country: 'Japan'},
+            'berlin': {lat: 52.5200, lng: 13.4050, type: 'city', country: 'Germany'},
+            'madrid': {lat: 40.4168, lng: -3.7038, type: 'city', country: 'Spain'},
+            'rome': {lat: 41.9028, lng: 12.4964, type: 'city', country: 'Italy'},
+            'moscow': {lat: 55.7558, lng: 37.6173, type: 'city', country: 'Russia'},
+            'beijing': {lat: 39.9042, lng: 116.4074, type: 'city', country: 'China'},
+            'sydney': {lat: -33.8688, lng: 151.2093, type: 'city', country: 'Australia'},
+            'toronto': {lat: 43.6532, lng: -79.3832, type: 'city', country: 'Canada'},
+            'mumbai': {lat: 19.0760, lng: 72.8777, type: 'city', country: 'India'},
+            'cairo': {lat: 30.0444, lng: 31.2357, type: 'city', country: 'Egypt'},
+            'istanbul': {lat: 41.0082, lng: 28.9784, type: 'city', country: 'Turkey'},
+            'sao paulo': {lat: -23.5505, lng: -46.6333, type: 'city', country: 'Brazil'},
+            'lyon': {lat: 45.7640, lng: 4.8357, type: 'city', country: 'France'},
+            'marseille': {lat: 43.2965, lng: 5.3698, type: 'city', country: 'France'},
+            'toulouse': {lat: 43.6047, lng: 1.4442, type: 'city', country: 'France'},
+            'nice': {lat: 43.7102, lng: 7.2620, type: 'city', country: 'France'},
+            'bordeaux': {lat: 44.8378, lng: -0.5792, type: 'city', country: 'France'},
+            
+            // Landmarks
+            'eiffel tower': {lat: 48.8584, lng: 2.2945, type: 'landmark', country: 'France'},
+            'times square': {lat: 40.7580, lng: -73.9855, type: 'landmark', country: 'United States'},
+            'big ben': {lat: 51.5007, lng: -0.1246, type: 'landmark', country: 'United Kingdom'},
+            'statue of liberty': {lat: 40.6892, lng: -74.0445, type: 'landmark', country: 'United States'},
+            'colosseum': {lat: 41.8902, lng: 12.4922, type: 'landmark', country: 'Italy'},
+            'louvre': {lat: 48.8606, lng: 2.3376, type: 'landmark', country: 'France'},
+            
+            // Countries (center coordinates)
+            'france': {lat: 46.6034, lng: 1.8883, type: 'country', country: 'France'},
+            'germany': {lat: 51.1657, lng: 10.4515, type: 'country', country: 'Germany'},
+            'spain': {lat: 40.4637, lng: -3.7492, type: 'country', country: 'Spain'},
+            'italy': {lat: 41.8719, lng: 12.5674, type: 'country', country: 'Italy'},
+            'united kingdom': {lat: 55.3781, lng: -3.4360, type: 'country', country: 'United Kingdom'},
+            'united states': {lat: 37.0902, lng: -95.7129, type: 'country', country: 'United States'}
+        };
+
+        // Check if Leaflet is loaded
+        function waitForLeaflet() {
+            return new Promise((resolve) => {
+                if (typeof L !== 'undefined') {
+                    leafletLoaded = true;
+                    resolve();
+                } else {
+                    setTimeout(() => waitForLeaflet().then(resolve), 100);
+                }
+            });
+        }
+
+        // Initialize map
+        async function initMap() {
+            await waitForLeaflet();
+            
+            if (typeof L === 'undefined') {
+                console.error('Leaflet library failed to load');
+                document.getElementById('map').innerHTML = '<p style="text-align: center; padding: 2rem; color: #666;">Map library failed to load. Please refresh the page.</p>';
+                return;
+            }
+
+            map = L.map('map').setView([46.2276, 2.2137], 3); // World view initially
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Add custom styling
+            map.getContainer().style.filter = 'hue-rotate(10deg) saturate(1.1)';
+            
+            console.log('Map initialized successfully');
+        }
+
+        // AI Chat Functions
+        function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (message === '') return;
+            
+            // Add user message to chat
+            addChatMessage('user', message);
+            
+            // Process message for locations
+            setTimeout(() => {
+                processLocationMessage(message);
+            }, 500);
+            
+            input.value = '';
+        }
+
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function addChatMessage(type, content, locations = null) {
+            const chatMessages = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            if (locations && locations.length > 0) {
+                content += '<br><br>📍 <em>Locations detected and mapped!</em>';
+            }
+            
+            messageDiv.innerHTML = content;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function processLocationMessage(message) {
+            const extractedLocations = extractLocationsFromText(message);
+            
+            if (extractedLocations.length === 0) {
+                // AI responds when no locations found
+                const responses = [
+                    "I didn't detect any specific locations in your message. Try mentioning cities, addresses, or landmarks!",
+                    "No geographic references found. You could try mentioning places like 'Paris', '123 Main Street', or famous landmarks.",
+                    "I'm listening for location names! Feel free to describe travel plans, addresses, or places you're interested in."
+                ];
+                addChatMessage('ai', responses[Math.floor(Math.random() * responses.length)]);
+                return;
+            }
+
+            // Add locations to map
+            const mappedCount = addLocationsToMap(extractedLocations);
+            
+            // Update extracted locations display
+            displayExtractedLocations(extractedLocations);
+            
+            // AI response
+            const locationTypes = [...new Set(extractedLocations.map(loc => loc.type))];
+            const aiResponse = generateAIResponse(extractedLocations, locationTypes, mappedCount);
+            addChatMessage('ai', aiResponse, extractedLocations);
+            
+            // Update chat locations counter
+            document.getElementById('chat-locations').textContent = chatLocations.length;
+        }
+
+        function extractLocationsFromText(text) {
+            const locations = [];
+            const processed = new Set(); // Avoid duplicates
+            
+            // Extract different types of locations
+            const checks = [
+                {pattern: locationPatterns.landmarks, type: 'landmark'},
+                {pattern: locationPatterns.streetAddress, type: 'address'},
+                {pattern: locationPatterns.cityCountry, type: 'city'},
+                {pattern: locationPatterns.majorCities, type: 'city'},
+                {pattern: locationPatterns.countries, type: 'country'}
+            ];
+            
+            checks.forEach(({pattern, type}) => {
+                let match;
+                const regex = new RegExp(pattern.source, pattern.flags);
+                
+                while ((match = regex.exec(text)) !== null) {
+                    const locationName = match[0].toLowerCase().trim();
+                    
+                    if (!processed.has(locationName)) {
+                        processed.add(locationName);
+                        
+                        // Try to find coordinates
+                        const coords = findCoordinates(locationName, type);
+                        if (coords) {
+                            locations.push({
+                                name: match[0].trim(),
+                                originalText: match[0],
+                                type: type,
+                                ...coords
+                            });
+                        } else if (type === 'address') {
+                            // For addresses, create a placeholder
+                            locations.push({
+                                name: match[0].trim(),
+                                originalText: match[0],
+                                type: 'address',
+                                lat: null,
+                                lng: null,
+                                needsGeocoding: true
+                            });
+                        }
+                    }
+                }
+            });
+            
+            return locations;
+        }
+
+        function findCoordinates(locationName, type) {
+            const key = locationName.toLowerCase();
+            
+            // Direct lookup in our database
+            if (coordinateDB[key]) {
+                return coordinateDB[key];
+            }
+            
+            // Fuzzy matching for similar names
+            for (const [dbKey, coords] of Object.entries(coordinateDB)) {
+                if (dbKey.includes(key) || key.includes(dbKey)) {
+                    return coords;
+                }
+            }
+            
+            return null;
+        }
+
+        function addLocationsToMap(locations) {
+            let mappedCount = 0;
+            
+            locations.forEach(location => {
+                if (location.lat && location.lng) {
+                    const color = getLocationColor(location.type);
+                    const icon = getLocationIcon(location.type);
+                    
+                    const marker = L.circleMarker([location.lat, location.lng], {
+                        color: color,
+                        fillColor: color,
+                        fillOpacity: 0.7,
+                        radius: 8,
+                        weight: 3
+                    });
+
+                    const popupContent = `
+                        <div style="font-family: 'Segoe UI', sans-serif; min-width: 200px;">
+                            <h4 style="margin: 0 0 10px 0; color: #667eea;">${icon} ${location.name}</h4>
+                            <p style="margin: 5px 0;"><strong>Type:</strong> ${location.type}</p>
+                            <p style="margin: 5px 0;"><strong>Coordinates:</strong> ${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}</p>
+                            ${location.country ? `<p style="margin: 5px 0;"><strong>Country:</strong> ${location.country}</p>` : ''}
+                            <p style="margin: 10px 0 5px 0; font-size: 0.9rem; color: #666;"><em>Detected from chat message</em></p>
+                        </div>
+                    `;
+
+                    marker.bindPopup(popupContent);
+                    marker.addTo(map);
+                    mapMarkers.push(marker);
+                    
+                    // Add to chat locations
+                    chatLocations.push(location);
+                    mappedCount++;
+                    
+                    // Add subtle animation
+                    marker.on('mouseover', function() {
+                        this.setStyle({radius: 12, weight: 5});
+                    });
+                    marker.on('mouseout', function() {
+                        this.setStyle({radius: 8, weight: 3});
+                    });
+                } else if (location.needsGeocoding) {
+                    // Handle addresses that need geocoding
+                    simulateGeocoding(location);
+                }
+            });
+            
+            // Update total mapped counter
+            const total = parseInt(document.getElementById('data-points').textContent) + 
+                         parseInt(document.getElementById('chat-locations').textContent);
+            document.getElementById('mapped-total').textContent = total;
+            
+            return mappedCount;
+        }
+
+        function getLocationColor(type) {
+            const colors = {
+                'city': '#667eea',
+                'country': '#764ba2', 
+                'landmark': '#ff6b6b',
+                'address': '#28a745',
+                'default': '#6c757d'
+            };
+            return colors[type] || colors.default;
+        }
+
+        function getLocationIcon(type) {
+            const icons = {
+                'city': '🏙️',
+                'country': '🏛️',
+                'landmark': '🗼',
+                'address': '🏠',
+                'default': '📍'
+            };
+            return icons[type] || icons.default;
+        }
+
+        function simulateGeocoding(location) {
+            // Simulate geocoding delay for addresses
+            setTimeout(() => {
+                // For demo purposes, place addresses randomly in a metropolitan area
+                const baseCoords = {lat: 48.8566, lng: 2.3522}; // Paris as example
+                const randomLat = baseCoords.lat + (Math.random() - 0.5) * 0.1;
+                const randomLng = baseCoords.lng + (Math.random() - 0.5) * 0.1;
+                
+                location.lat = randomLat;
+                location.lng = randomLng;
+                location.needsGeocoding = false;
+                location.geocoded = true;
+                
+                const marker = L.circleMarker([randomLat, randomLng], {
+                    color: getLocationColor('address'),
+                    fillColor: getLocationColor('address'),
+                    fillOpacity: 0.7,
+                    radius: 8,
+                    weight: 3,
+                    className: 'geocoded-marker'
+                });
+
+                const popupContent = `
+                    <div style="font-family: 'Segoe UI', sans-serif; min-width: 200px;">
+                        <h4 style="margin: 0 0 10px 0; color: #28a745;">🏠 ${location.name}</h4>
+                        <p style="margin: 5px 0;"><strong>Type:</strong> ${location.type} (geocoded)</p>
+                        <p style="margin: 5px 0;"><strong>Coordinates:</strong> ${randomLat.toFixed(4)}, ${randomLng.toFixed(4)}</p>
+                        <p style="margin: 10px 0 5px 0; font-size: 0.9rem; color: #666;"><em>Simulated geocoding result</em></p>
+                    </div>
+                `;
+
+                marker.bindPopup(popupContent);
+                marker.addTo(map);
+                mapMarkers.push(marker);
+                
+                // Add bounce animation
+                setTimeout(() => {
+                    marker.setStyle({radius: 12});
+                    setTimeout(() => marker.setStyle({radius: 8}), 200);
+                }, 100);
+                
+                addChatMessage('system', `📍 Geocoded address: "${location.name}" - Added to map`);
+            }, Math.random() * 2000 + 1000); // Random delay 1-3 seconds
+        }
+
+        function displayExtractedLocations(locations) {
+            const container = document.getElementById('extracted-locations');
+            const tagsContainer = document.getElementById('location-tags');
+            
+            if (locations.length > 0) {
+                container.style.display = 'block';
+                tagsContainer.innerHTML = locations.map(loc => 
+                    `<span class="location-tag" onclick="focusOnLocation('${loc.name}')" title="Click to focus on map">
+                        ${getLocationIcon(loc.type)} ${loc.name}
+                    </span>`
+                ).join('');
+            }
+        }
+
+        function focusOnLocation(locationName) {
+            const location = chatLocations.find(loc => loc.name === locationName);
+            if (location && location.lat && location.lng) {
+                map.setView([location.lat, location.lng], 12);
+                
+                // Flash the marker
+                const marker = mapMarkers.find(m => {
+                    const markerLatLng = m.getLatLng();
+                    return Math.abs(markerLatLng.lat - location.lat) < 0.001 && 
+                           Math.abs(markerLatLng.lng - location.lng) < 0.001;
+                });
+                
+                if (marker) {
+                    marker.openPopup();
+                    const originalRadius = marker.getRadius();
+                    marker.setStyle({radius: originalRadius * 2});
+                    setTimeout(() => marker.setStyle({radius: originalRadius}), 1000);
+                }
+            }
+        }
+
+        function generateAIResponse(locations, locationTypes, mappedCount) {
+            const responses = [
+                `Great! I found ${locations.length} location${locations.length > 1 ? 's' : ''} in your message. I've mapped ${mappedCount} of them on the map.`,
+                `Excellent geographic reference! I detected ${locations.length} location${locations.length > 1 ? 's' : ''} including ${locationTypes.join(', ')} types.`,
+                `Perfect! Your message contained ${locations.length} mappable location${locations.length > 1 ? 's' : ''}. Check the map to see where they are!`,
+                `Nice! I extracted ${locations.length} geographic reference${locations.length > 1 ? 's' : ''} and plotted ${mappedCount} on the interactive map.`
+            ];
+            
+            let response = responses[Math.floor(Math.random() * responses.length)];
+            
+            // Add specific insights
+            if (locations.some(loc => loc.type === 'address')) {
+                response += " I'm geocoding the street addresses - they'll appear shortly with a bounce animation.";
+            }
+            
+            if (locations.length > 3) {
+                response += " That's quite a geographic span you mentioned!";
+            }
+            
+            const countries = [...new Set(locations.filter(loc => loc.country).map(loc => loc.country))];
+            if (countries.length > 1) {
+                response += ` Your locations span ${countries.length} countries: ${countries.join(', ')}.`;
+            }
+            
+            return response;
+        }
+
+        // Enhanced sample data with more geographic diversity
+        function generateSampleData() {
+            const cities = [
+                // European cities
+                {name: 'Paris', lat: 48.8566, lng: 2.3522, population: 2161000, tourism: 89, industry: 67, education: 95, continent: 'Europe'},
+                {name: 'London', lat: 51.5074, lng: -0.1278, population: 8982000, tourism: 92, industry: 78, education: 88, continent: 'Europe'},
+                {name: 'Berlin', lat: 52.5200, lng: 13.4050, population: 3669000, tourism: 76, industry: 82, education: 90, continent: 'Europe'},
+                {name: 'Madrid', lat: 40.4168, lng: -3.7038, population: 3223000, tourism: 81, industry: 65, education: 83, continent: 'Europe'},
+                
+                // Asian cities
+                {name: 'Tokyo', lat: 35.6762, lng: 139.6503, population: 13929000, tourism: 85, industry: 95, education: 92, continent: 'Asia'},
+                {name: 'Beijing', lat: 39.9042, lng: 116.4074, population: 21540000, tourism: 73, industry: 88, education: 87, continent: 'Asia'},
+                {name: 'Mumbai', lat: 19.0760, lng: 72.8777, population: 12442000, tourism: 68, industry: 79, education: 71, continent: 'Asia'},
+                
+                // American cities
+                {name: 'New York', lat: 40.7128, lng: -74.0060, population: 8336000, tourism: 94, industry: 86, education: 89, continent: 'North America'},
+                {name: 'Los Angeles', lat: 34.0522, lng: -118.2437, population: 3980000, tourism: 88, industry: 74, education: 82, continent: 'North America'},
+                
+                // Other continents
+                {name: 'Sydney', lat: -33.8688, lng: 151.2093, population: 5312000, tourism: 91, industry: 72, education: 86, continent: 'Australia'},
+                {name: 'Cairo', lat: 30.0444, lng: 31.2357, population: 9500000, tourism: 79, industry: 56, education: 64, continent: 'Africa'},
+                {name: 'São Paulo', lat: -23.5505, lng: -46.6333, population: 12325000, tourism: 64, industry: 83, education: 75, continent: 'South America'}
+            ];
+
+            currentData = cities;
+            updateStats();
+            
+            document.getElementById('analysis-results').innerHTML = `
+                <h4>✅ Global Dataset Generated</h4>
+                <p>Generated ${cities.length} major world cities across ${[...new Set(cities.map(c => c.continent))].length} continents with:</p>
+                <ul style="margin-left: 1rem; margin-top: 0.5rem; font-size: 0.9rem;">
+                    <li>Population data</li>
+                    <li>Tourism index (0-100)</li>
+                    <li>Industry index (0-100)</li>
+                    <li>Education index (0-100)</li>
+                </ul>
+            `;
+        }
+
+        // Correspondence Analysis implementation
+        function runCorrespondenceAnalysis() {
+            if (currentData.length === 0) {
+                alert('Please generate sample data first!');
+                return;
+            }
+
+            showLoading();
+
+            setTimeout(() => {
+                // Create contingency table from our data
+                const matrix = currentData.map(city => [
+                    city.tourism / 100,
+                    city.industry / 100,
+                    city.education / 100,
+                    Math.log(city.population) / 20 // Normalize population
+                ]);
+
+                // Simplified correspondence analysis using SVD
+                const result = performSimplifiedCA(matrix);
+                analysisResults = result;
+
+                // Calculate variance explained
+                const totalVariance = result.singularValues.reduce((sum, val) => sum + val * val, 0);
+                const varianceExplained = ((result.singularValues[0] * result.singularValues[0] + 
+                                         result.singularValues[1] * result.singularValues[1]) / totalVariance * 100).toFixed(1);
+
+                document.getElementById('variance-explained').textContent = varianceExplained + '%';
+
+                hideLoading();
+                
+                document.getElementById('analysis-results').innerHTML = `
+                    <h4>🔬 AFC Analysis Complete</h4>
+                    <div style="background: white; border-radius: 10px; padding: 1rem; margin: 0.5rem 0; font-size: 0.9rem;">
+                        <strong>Principal Components:</strong><br>
+                        <span style="font-family: monospace; color: #666;">
+                        Dim 1: Tourism vs Industry axis<br>
+                        Dim 2: Education vs Population axis
+                        </span>
+                    </div>
+                    <div style="background: white; border-radius: 10px; padding: 1rem; margin: 0.5rem 0; font-size: 0.9rem;">
+                        <strong>Key Findings:</strong><br>
+                        • ${varianceExplained}% variance explained<br>
+                        • ${result.coordinates.length} cities analyzed<br>
+                        • Ready for visualization
+                    </div>
+                `;
+            }, 1500);
+        }
+
+        // Simplified Correspondence Analysis
+        function performSimplifiedCA(matrix) {
+            const n = matrix.length;
+            const m = matrix[0].length;
+            
+            // Calculate row and column masses (simplified)
+            const rowMasses = matrix.map(row => row.reduce((sum, val) => sum + val, 0) / m);
+            const colMasses = [];
+            for (let j = 0; j < m; j++) {
+                colMasses[j] = matrix.reduce((sum, row) => sum + row[j], 0) / n;
+            }
+
+            // Generate coordinates (simplified transformation)
+            const coordinates = matrix.map((row, i) => {
+                const factor1 = (row[0] - row[1]) * 100; // Tourism vs Industry
+                const factor2 = (row[2] - Math.log(currentData[i].population) / 20) * 100; // Education vs Population
+                return {
+                    city: currentData[i].name,
+                    lat: currentData[i].lat,
+                    lng: currentData[i].lng,
+                    factor1: factor1,
+                    factor2: factor2,
+                    quality: Math.random() * 0.3 + 0.7 // Simulated quality of representation
+                };
+            });
+
+            return {
+                coordinates: coordinates,
+                singularValues: [0.8, 0.6, 0.3, 0.2], // Simulated eigenvalues
+                rowMasses: rowMasses,
+                colMasses: colMasses
+            };
+        }
+
+        // Visualize AFC results on map
+        async function visualizeResults() {
+            if (!analysisResults) {
+                alert('Please run AFC analysis first!');
+                return;
+            }
+
+            // Ensure map is initialized
+            if (!map) {
+                await initMap();
+                if (!map) {
+                    alert('Map failed to initialize. Please refresh the page.');
+                    return;
+                }
+            }
+
+            // Clear existing AFC markers only (keep chat markers)
+            const afcMarkers = mapMarkers.filter(marker => !marker.options.className || !marker.options.className.includes('chat-marker'));
+            afcMarkers.forEach(marker => map.removeLayer(marker));
+            mapMarkers = mapMarkers.filter(marker => marker.options.className && marker.options.className.includes('chat-marker'));
+
+            // Create color scale based on factor scores
+            function getColor(factor1, factor2) {
+                const intensity = Math.sqrt(factor1 * factor1 + factor2 * factor2);
+                const hue = ((Math.atan2(factor2, factor1) * 180 / Math.PI + 360) % 360);
+                return `hsl(${hue}, 70%, ${Math.min(80, 50 + intensity)})`;
+            }
+
+            // Add markers for each city
+            analysisResults.coordinates.forEach(point => {
+                const color = getColor(point.factor1, point.factor2);
+                const size = Math.max(10, Math.abs(point.factor1) + Math.abs(point.factor2)) * 0.3;
+                
+                const marker = L.circleMarker([point.lat, point.lng], {
+                    color: color,
+                    fillColor: color,
+                    fillOpacity: 0.8,
+                    radius: size,
+                    weight: 3,
+                    className: 'afc-marker'
+                });
+
+                const popupContent = `
+                    <div style="font-family: 'Segoe UI', sans-serif;">
+                        <h4 style="margin: 0 0 10px 0; color: #667eea;">🔬 ${point.city}</h4>
+                        <p style="margin: 5px 0;"><strong>Factor 1:</strong> ${point.factor1.toFixed(2)} (Tourism-Industry)</p>
+                        <p style="margin: 5px 0;"><strong>Factor 2:</strong> ${point.factor2.toFixed(2)} (Education-Population)</p>
+                        <p style="margin: 5px 0;"><strong>Quality:</strong> ${(point.quality * 100).toFixed(1)}%</p>
+                        <p style="margin: 10px 0 5px 0; font-size: 0.9rem; color: #666;"><em>AFC Analysis Result</em></p>
+                    </div>
+                `;
+
+                marker.bindPopup(popupContent);
+                marker.addTo(map);
+                mapMarkers.push(marker);
+
+                // Add subtle animation
+                marker.on('mouseover', function() {
+                    this.setStyle({radius: size * 1.3, weight: 5});
+                });
+                marker.on('mouseout', function() {
+                    this.setStyle({radius: size, weight: 3});
+                });
+            });
+
+            // Fit map to show all markers
+            if (mapMarkers.length > 0) {
+                const group = new L.featureGroup(mapMarkers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+
+            document.getElementById('analysis-results').innerHTML += `
+                <div style="border-left: 4px solid #28a745; background: rgba(40, 167, 69, 0.1); border-radius: 10px; padding: 1rem; margin: 1rem 0;">
+                    <strong>🗺️ Visualization Complete!</strong><br>
+                    <span style="font-size: 0.9rem;">Cities mapped with AFC coordinates. Circle size and color represent factor loadings.</span>
+                </div>
+            `;
+        }
+
+        function clearAllMarkers() {
+            mapMarkers.forEach(marker => map.removeLayer(marker));
+            mapMarkers = [];
+            chatLocations = [];
+            
+            document.getElementById('chat-locations').textContent = '0';
+            document.getElementById('mapped-total').textContent = document.getElementById('data-points').textContent;
+            document.getElementById('extracted-locations').style.display = 'none';
+            
+            addChatMessage('system', '🗑️ All markers cleared from map');
+        }
+
+        // Demo chat commands
+        function initializeDemoCommands() {
+            const demoCommands = [
+                "Try: 'I traveled from Paris to London, then visited the Eiffel Tower'",
+                "Try: 'Meeting at 123 Broadway, New York, then flying to Tokyo'", 
+                "Try: 'Our offices are in Berlin, Madrid, and São Paulo'",
+                "Try: 'Road trip through France, Spain, and Italy'"
+            ];
+            
+            // Add demo suggestions
+            setTimeout(() => {
+                const randomCommand = demoCommands[Math.floor(Math.random() * demoCommands.length)];
+                addChatMessage('system', `💡 ${randomCommand}`);
+            }, 2000);
+        }
+
+        // Helper functions
+        function updateStats() {
+            document.getElementById('data-points').textContent = currentData.length;
+            const total = currentData.length + chatLocations.length;
+            document.getElementById('mapped-total').textContent = total;
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // Add keyboard shortcuts
+        function addInteractiveFeatures() {
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey || e.metaKey) {
+                    switch(e.key) {
+                        case 'g':
+                            e.preventDefault();
+                            generateSampleData();
+                            break;
+                        case 'r':
+                            e.preventDefault();
+                            runCorrespondenceAnalysis();
+                            break;
+                        case 'v':
+                            e.preventDefault();
+                            visualizeResults();
+                            break;
+                        case 'Enter':
+                            e.preventDefault();
+                            document.getElementById('chat-input').focus();
+                            break;
+                    }
+                }
+            });
+        }
+
+        // Enhanced geocoding simulation with real city approximations
+        async function enhancedGeocoding(address) {
+            // Simulate API call delay
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+            
+            // Extract potential city names from address
+            const addressLower = address.toLowerCase();
+            
+            // Check if address contains known city names
+            for (const [cityKey, coords] of Object.entries(coordinateDB)) {
+                if (addressLower.includes(cityKey)) {
+                    // Add some random offset for street addresses within the city
+                    return {
+                        lat: coords.lat + (Math.random() - 0.5) * 0.02,
+                        lng: coords.lng + (Math.random() - 0.5) * 0.02,
+                        confidence: 0.8 + Math.random() * 0.2
+                    };
+                }
+            }
+            
+            // Default to Paris area for demo
+            return {
+                lat: 48.8566 + (Math.random() - 0.5) * 0.1,
+                lng: 2.3522 + (Math.random() - 0.5) * 0.1,
+                confidence: 0.6 + Math.random() * 0.2
+            };
+        }
+
+        // Initialize everything
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('DOM loaded, initializing IMAGE AFC + AI Chat...');
+            
+            try {
+                await waitForLeaflet();
+                await initMap();
+                console.log('Map initialized successfully');
+                
+                // Initialize demo commands
+                initializeDemoCommands();
+                
+            } catch (error) {
+                console.error('Failed to initialize map:', error);
+                document.getElementById('map').innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;"><h3>Map Loading Error</h3><p>Please refresh the page to try again.</p></div>';
+            }
+            
+            addInteractiveFeatures();
+            
+            // Add welcome animation
+            const elements = ['.header', '.controls-panel', '.map-container', '.chat-panel'];
+            elements.forEach((selector, index) => {
+                const element = document.querySelector(selector);
+                if (element) {
+                    element.style.transform = 'translateY(20px)';
+                    element.style.opacity = '0';
+                    
+                    setTimeout(() => {
+                        element.style.transition = 'all 0.6s ease';
+                        element.style.transform = 'translateY(0)';
+                        element.style.opacity = '1';
+                    }, 100 + index * 150);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
